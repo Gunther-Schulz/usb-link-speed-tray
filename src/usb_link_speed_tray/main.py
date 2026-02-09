@@ -7,7 +7,9 @@ import logging
 import re
 import sys
 import tempfile
+import time
 from pathlib import Path
+from threading import Thread
 
 # AppIndicator3 (SNI) + GTK; same stack as rclone-bisync-manager.
 APPINDICATOR_AVAILABLE = False
@@ -270,11 +272,12 @@ def _build_gtk_menu(spec: list[dict]) -> Gtk.Menu | None:
 
 
 def _menu_state(devices: list[tuple[str, int | None]], *, debug: bool = False) -> tuple[tuple[str, int | None, tuple[str, ...]], ...]:
-    """Return comparable state (devices + speeds + mount points) for change detection."""
+    """Return comparable state (devices + speeds + mount points) for change detection. Sorted by block_name so order is stable."""
     rows: list[tuple[str, int | None, tuple[str, ...]]] = []
     for block_name, speed in devices:
         mounts = tuple(sorted(get_mount_points(block_name, _debug=debug)))
         rows.append((block_name, speed, mounts))
+    rows.sort(key=lambda r: r[0])  # canonical order so state compares equal when data is same
     return tuple(rows)
 
 
@@ -339,25 +342,46 @@ def run() -> None:
     )
     indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 
-    _last_menu_state: list[tuple[tuple[str, int | None, tuple[str, ...]], ...] | None] = [None]
+    # Build initial menu once
+    devices = get_usb_storage_speeds()
+    initial_state = _menu_state(devices, debug=args.debug)
+    spec = _get_menu_spec(devices, debug=args.debug)
+    menu = _build_gtk_menu(spec)
+    if menu is not None:
+        indicator.set_menu(menu)
 
-    def update_menu() -> bool:
-        devices = get_usb_storage_speeds()
-        state = _menu_state(devices, debug=args.debug)
-        if state == _last_menu_state[0]:
-            return True  # no change, skip set_menu to avoid flicker
-        _last_menu_state[0] = state
-        if args.debug:
-            logger.debug("update_menu: %s device(s), menu refreshed", len(devices))
+    def _spec_labels(spec: list[dict]) -> tuple[str, ...]:
+        """Labels of menu items (order preserved) for identity check; skip set_menu when identical."""
+        return tuple(s.get(_SPEC_LABEL, "") for s in spec if s.get(_SPEC_TYPE) == _SPEC_ITEM)
+
+    _last_labels: list[tuple[str, ...] | None] = [_spec_labels(spec)]
+
+    def apply_menu_update(devices: list[tuple[str, int | None]]) -> bool:
+        """Run on main thread: rebuild and set menu only when display (labels) actually changed."""
         spec = _get_menu_spec(devices, debug=args.debug)
+        labels = _spec_labels(spec)
+        if labels == _last_labels[0]:
+            return False  # menu is identical, skip set_menu to avoid any redraw
+        _last_labels[0] = labels
         menu = _build_gtk_menu(spec)
         if menu is not None:
             indicator.set_menu(menu)
-        return True  # keep timer
+        if args.debug:
+            logger.debug("apply_menu_update: %s device(s), menu refreshed", len(devices))
+        return False  # GLib.idle_add: return False to remove source
 
-    # Initial menu (same path as timer, so we only have one place that scans + builds)
-    update_menu()
-    GLib.timeout_add(REFRESH_INTERVAL_MS, update_menu)
+    def poll_loop() -> None:
+        """Background thread: poll devices/mounts; only schedule menu update when state changes (like rclone tray)."""
+        last_state: list[tuple[tuple[str, int | None, tuple[str, ...]], ...] | None] = [initial_state]
+        while True:
+            time.sleep(REFRESH_INTERVAL_MS / 1000.0)
+            devices = get_usb_storage_speeds()
+            state = _menu_state(devices, debug=args.debug)
+            if state != last_state[0]:
+                last_state[0] = state
+                GLib.idle_add(apply_menu_update, devices)
+
+    Thread(target=poll_loop, daemon=True).start()
 
     def quit_on_signal(*args: object) -> None:
         Gtk.main_quit()
