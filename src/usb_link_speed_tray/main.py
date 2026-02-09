@@ -269,6 +269,15 @@ def _build_gtk_menu(spec: list[dict]) -> Gtk.Menu | None:
     return menu
 
 
+def _menu_state(devices: list[tuple[str, int | None]], *, debug: bool = False) -> tuple[tuple[str, int | None, tuple[str, ...]], ...]:
+    """Return comparable state (devices + speeds + mount points) for change detection."""
+    rows: list[tuple[str, int | None, tuple[str, ...]]] = []
+    for block_name, speed in devices:
+        mounts = tuple(sorted(get_mount_points(block_name, _debug=debug)))
+        rows.append((block_name, speed, mounts))
+    return tuple(rows)
+
+
 def _get_menu_spec(devices: list[tuple[str, int | None]], *, debug: bool = False) -> list[dict]:
     """Build menu spec: device rows, separator, Quit."""
     spec: list[dict] = []
@@ -330,9 +339,16 @@ def run() -> None:
     )
     indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 
+    _last_menu_state: list[tuple[tuple[str, int | None, tuple[str, ...]], ...] | None] = [None]
+
     def update_menu() -> bool:
         devices = get_usb_storage_speeds()
-        logger.debug("update_menu: %s device(s)", len(devices))
+        state = _menu_state(devices, debug=args.debug)
+        if state == _last_menu_state[0]:
+            return True  # no change, skip set_menu to avoid flicker
+        _last_menu_state[0] = state
+        if args.debug:
+            logger.debug("update_menu: %s device(s), menu refreshed", len(devices))
         spec = _get_menu_spec(devices, debug=args.debug)
         menu = _build_gtk_menu(spec)
         if menu is not None:
