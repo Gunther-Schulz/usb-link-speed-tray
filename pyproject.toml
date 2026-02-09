@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "usb-link-speed-tray"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tray app showing link speed of attached external USB storage (e.g. 480 Mbps vs 5 Gbps)."
 readme = "README.md"
 requires-python = ">=3.10"
