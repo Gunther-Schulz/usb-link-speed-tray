@@ -1,0 +1,14 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- USB-A connector -->
+  <rect x="6.5" y="0.5" width="11" height="5" rx="0.6" fill="none" stroke="#5c6bc0" stroke-width="1" stroke-linecap="round"/>
+  <circle cx="9" cy="2.5" r="0.55" fill="#5c6bc0"/>
+  <circle cx="15" cy="2.5" r="0.55" fill="#5c6bc0"/>
+  <!-- body (flat top, semicircle bottom) -->
+  <path d="M 5.5,5 L 18.5,5 L 18.5,15 A 6.5,6.5 0 0 1 5.5,15 Z" fill="none" stroke="#5c6bc0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- indicator circle with spoked center -->
+  <circle cx="12" cy="13" r="2.2" fill="none" stroke="#5c6bc0" stroke-width="1"/>
+  <line x1="12" y1="11.2" x2="12" y2="14.8" stroke="#5c6bc0" stroke-width="1" stroke-linecap="round"/>
+  <line x1="9.8" y1="13" x2="14.2" y2="13" stroke="#5c6bc0" stroke-width="1" stroke-linecap="round"/>
+  <line x1="10.5" y1="11.5" x2="13.5" y2="14.5" stroke="#5c6bc0" stroke-width="1" stroke-linecap="round"/>
+  <line x1="13.5" y1="11.5" x2="10.5" y2="14.5" stroke="#5c6bc0" stroke-width="1" stroke-linecap="round"/>
+</svg>
