@@ -2,14 +2,22 @@
 
 Tray app showing link speed of attached external USB storage (e.g. 480 Mbps vs 5 Gbps).
 
-## Git setup
+## Run
 
-If the folder is not yet a git repo (e.g. GitKraken won’t open it), run once:
+From the project root:
 
 ```bash
-cd ~/dev/Gunther-Schulz/usb-link-speed-tray
-git init
-git remote add origin https://github.com/Gunther-Schulz/usb-link-speed-tray.git
+pip install -e .
+usb-link-speed-tray
 ```
 
-Then make an initial commit and push, or fetch from `origin` if the repo already has history.
+Or without installing (from project root):
+
+```bash
+pip install PyGObject cairosvg Pillow
+PYTHONPATH=src python -m usb_link_speed_tray.main
+```
+
+**System dependencies (tray uses AppIndicator3 + GTK3):** On Arch: `pacman -S libappindicator-gtk3 gtk3`.
+
+The app appears in the system tray; plug in USB storage to see its link speed (e.g. 480 Mbps, 5 Gbps).
