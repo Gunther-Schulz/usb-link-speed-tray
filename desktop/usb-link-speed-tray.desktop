@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=USB Link Speed Tray
+GenericName=USB Storage Monitor
+Comment=System tray showing USB storage link speed and mount points
+Exec=usb-link-speed-tray
+Icon=drive-removable-media-usb
+Terminal=false
+Categories=Utility;System;
+StartupNotify=true
