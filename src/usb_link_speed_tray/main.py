@@ -29,8 +29,8 @@ _TRAY_ICON_SVG = '''
   <rect x="6.5" y="0.5" width="11" height="5" rx="0.6" fill="none" stroke="{color}" stroke-width="{thickness}" stroke-linecap="round"/>
   <circle cx="9" cy="2.5" r="0.55" fill="{color}"/>
   <circle cx="15" cy="2.5" r="0.55" fill="{color}"/>
-  <!-- body -->
-  <rect x="5.5" y="5" width="13" height="17" rx="2" fill="none" stroke="{color}" stroke-width="{thickness}" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- body (flat top, semicircle bottom) -->
+  <path d="M 5.5,5 L 18.5,5 L 18.5,15 A 6.5,6.5 0 0 1 5.5,15 Z" fill="none" stroke="{color}" stroke-width="{thickness}" stroke-linecap="round" stroke-linejoin="round"/>
   <!-- indicator circle with spoked center -->
   <circle cx="12" cy="13" r="2.2" fill="none" stroke="{color}" stroke-width="{thickness}"/>
   <line x1="12" y1="11.2" x2="12" y2="14.8" stroke="{color}" stroke-width="{thickness}" stroke-linecap="round"/>
@@ -125,8 +125,6 @@ def _get_block_dev_numbers(block_name: str, *, _debug: bool = False) -> set[str]
                     result.add(part_dev.read_text().strip())
                 except OSError:
                     pass
-    if _debug:
-        logger.debug("get_mount_points: %s dev_numbers %s", block_name, result)
     return result
 
 
@@ -341,10 +339,8 @@ def run() -> None:
             indicator.set_menu(menu)
         return True  # keep timer
 
-    # Initial menu
-    devices = get_usb_storage_speeds()
-    indicator.set_menu(_build_gtk_menu(_get_menu_spec(devices, debug=args.debug)))
-
+    # Initial menu (same path as timer, so we only have one place that scans + builds)
+    update_menu()
     GLib.timeout_add(REFRESH_INTERVAL_MS, update_menu)
 
     def quit_on_signal(*args: object) -> None:
