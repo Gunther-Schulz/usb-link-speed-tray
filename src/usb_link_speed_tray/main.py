@@ -67,7 +67,7 @@ def _render_tray_icon_to_path(path: str | Path) -> None:
         thickness=_TRAY_ICON_STROKE,
     )
     png_data = svg2png(
-        bytestring=svg_code.strip(),
+        bytestring=svg_code.strip().encode("utf-8"),
         output_width=_TRAY_ICON_SIZE,
         output_height=_TRAY_ICON_SIZE,
     )
@@ -291,7 +291,7 @@ def _get_menu_spec(devices: list[tuple[str, int | None]], *, debug: bool = False
             label = f"{block_name}: {format_speed(speed)}"
             mounts = get_mount_points(block_name, _debug=debug)
             if mounts:
-                label += " — " + ", ".join(mounts)
+                label += " — " + ", ".join(sorted(mounts))
             spec.append({
                 _SPEC_TYPE: _SPEC_ITEM,
                 _SPEC_LABEL: label,
@@ -342,8 +342,8 @@ def run() -> None:
     )
     indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 
-    # Build initial menu once
-    devices = get_usb_storage_speeds()
+    # Build initial menu once (sort by block_name so order is stable across polls)
+    devices = sorted(get_usb_storage_speeds(), key=lambda d: d[0])
     initial_state = _menu_state(devices, debug=args.debug)
     spec = _get_menu_spec(devices, debug=args.debug)
     menu = _build_gtk_menu(spec)
@@ -358,6 +358,7 @@ def run() -> None:
 
     def apply_menu_update(devices: list[tuple[str, int | None]]) -> bool:
         """Run on main thread: rebuild and set menu only when display (labels) actually changed."""
+        devices = sorted(devices, key=lambda d: d[0])  # same order as initial_state so labels match when unchanged
         spec = _get_menu_spec(devices, debug=args.debug)
         labels = _spec_labels(spec)
         if labels == _last_labels[0]:
@@ -375,7 +376,7 @@ def run() -> None:
         last_state: list[tuple[tuple[str, int | None, tuple[str, ...]], ...] | None] = [initial_state]
         while True:
             time.sleep(REFRESH_INTERVAL_MS / 1000.0)
-            devices = get_usb_storage_speeds()
+            devices = sorted(get_usb_storage_speeds(), key=lambda d: d[0])
             state = _menu_state(devices, debug=args.debug)
             if state != last_state[0]:
                 last_state[0] = state
